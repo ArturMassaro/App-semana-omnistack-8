@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import io from 'socket.io-client'
 import { View, Text, StyleSheet, Image, SafeAreaView } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-community/async-storage';
@@ -8,16 +9,33 @@ import api from '../services/api'
 import Logo from '../assets/logo.png'
 import Like from '../assets/like.png'
 import Dislike from '../assets/dislike.png'
-
+import itsamatch from '../assets/itsamatch.png'
 
 
 export default function main({ navigation }) {
     const id = navigation.getParam('user')
     const [users, setUsers ] = useState([]);
-
+    const [matchDev, setMatchDev] = useState(null)
+  
     console.log(id)
-    useEffect(() => {
 
+    useEffect(() =>{
+        const socket = io('http://192.168.0.3:3333', {
+            query: { user: id }
+        });
+        socket.on('match', (dev) => {
+            setMatchDev(dev)
+        })
+
+        socket.on('hello', (dev) => {
+            // setMatchDev(dev)
+            console.log(dev)
+        })
+
+        
+    },  [id]);
+    useEffect(() => {
+ 
         async function loadUsers() {
             const response = await api.get('/devs', {
                 headers: {
@@ -64,6 +82,7 @@ export default function main({ navigation }) {
                 if(user){
                     AsyncStorage.removeItem('user')
                     navigation.navigate('login')
+                    // navigation.navigate('tela3')
 
                 }
             }
@@ -105,6 +124,27 @@ export default function main({ navigation }) {
                 </TouchableOpacity>
 
             </View> }
+
+            { 
+                matchDev && (
+                    <View style={[stylesheet.matchContainer, { zIndex: users.length + 1 }]}>
+                        <Image style={stylesheet.itsamatch} source={itsamatch} />
+                        <Image style={stylesheet.matchAvatar} className="avatar" source={{ uri: matchDev.avatar }} />
+
+                        <Text style={stylesheet.matchName}>{matchDev.name}</Text>
+                        <Text style={stylesheet.matchBio}>{matchDev.bio}</Text>
+
+                        {/* <Image style={stylesheet.matchAvatar} className="avatar" source={matchDev.avatar} />
+
+                        <Text style={stylesheet.matchName}>Artur Massaro</Text>
+                        <Text style={stylesheet.matchBio}>asdhalvasudasd shdlaydas ukjasgdjhasgdq7yod pyagsdouadgsaoudy</Text> */}
+
+                        <TouchableOpacity onPress={ () => { setMatchDev(null) } }>
+                            <Text style={stylesheet.closeMatch} >FECHAR</Text>
+                        </TouchableOpacity>
+                    </View>
+                )
+            }
         </SafeAreaView>
     )
 }
@@ -183,6 +223,46 @@ const stylesheet = StyleSheet.create({
         fontSize: 24,
         fontWeight: "bold",
         color: '#999'
+    },
+
+    matchContainer:{
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.80)',
+        justifyContent: "center",
+        alignItems: "center",
+        position: "absolute",
+    },
+    itsamatch:{
+        height: 60,
+        resizeMode: "contain"
+    },
+    matchAvatar:{
+        width: 160,
+        height: 160,
+        borderRadius: 80,
+        borderWidth: 5,
+        borderColor: '#fff',
+        marginVertical: 30,
+    },
+    matchName:{
+        fontSize: 26,
+        fontWeight: "bold",
+        color: '#fff'
+    },
+    matchBio:{
+        marginTop: 10,
+        fontSize: 16,
+        color: 'rgba(255,255,255, 0.8)',
+        lineHeight: 24,
+        textAlign: "center",
+        paddingHorizontal: 30
+    },
+    closeMatch:{
+        fontSize: 16,
+        color: 'rgba(255,255,255, 0.8)',
+        textAlign: "center",
+        marginTop: 30,
+        fontWeight: "bold",
     }
 
 })
